@@ -203,7 +203,7 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   /* USER CODE BEGIN 2 */
-  GPIOC->MODER 	|= GPIO_MODER_MODER15_0;
+  GPIOC->MODER 	|= GPIO_MODER_MODER14_0;
   GPIOC->OTYPER |= GPIO_OTYPER_OT14;
 
   HAL_GPIO_WritePin(GPIOC, GPIO_PIN_14, GPIO_PIN_SET);
