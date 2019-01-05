@@ -76,7 +76,7 @@ typedef enum state_t {
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-volatile uint8_t index;
+volatile uint8_t ind;
 volatile uint8_t data[8];
 volatile uint8_t parity;
 volatile uint8_t is_data = 0;
@@ -93,17 +93,17 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
 		case IDLE: {
 			if(bit == 0) {
 				state = DATA;
-				index = 0;
+				ind = 0;
 				parity = 1;
 			}
 			break;
 		}
 		case DATA: {
-			data[index] = bit;
+			data[ind] = bit;
 			if(bit)
 				parity = !parity;
-			++index;
-			if(index == 7)
+			++ind;
+			if(ind == 7)
 				state = PARITY;
 			break;
 		}
@@ -127,11 +127,11 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
 			break;
 		}
 		case SEND_DATA: {
-			HAL_GPIO_WritePin(GPIOC, GPIO_PIN_15, data[index]);
-			if(data[index])
+			HAL_GPIO_WritePin(GPIOC, GPIO_PIN_15, data[ind]);
+			if(data[ind])
 				parity = !parity;
-			++index;
-			if(index == 7)
+			++ind;
+			if(ind == 7)
 				state = SEND_PARITY;
 			break;
 		}
@@ -163,7 +163,7 @@ void sendByte(uint8_t *byte) {
 	HAL_Delay(1);
 	HAL_GPIO_WritePin(GPIOC, GPIO_PIN_15, GPIO_PIN_RESET);
 	state = SEND_DATA;
-	index = 0;
+	ind = 0;
 	parity = 0;
 	HAL_GPIO_WritePin(GPIOC, GPIO_PIN_14, GPIO_PIN_SET);
 }
@@ -203,7 +203,11 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   /* USER CODE BEGIN 2 */
+  GPIOC->MODER 	|= GPIO_MODER_MODER15_0;
+  GPIOC->OTYPER |= GPIO_OTYPER_OT14;
 
+  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_14, GPIO_PIN_SET);
+  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_15, GPIO_PIN_SET);
   /* USER CODE END 2 */
 
   /* Infinite loop */
