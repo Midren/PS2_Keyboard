@@ -77,7 +77,7 @@ typedef enum state_t {
 
 /* USER CODE BEGIN PV */
 volatile uint8_t ind;
-volatile uint8_t data[8];
+volatile uint8_t data;
 volatile uint8_t parity;
 volatile uint8_t is_data = 0;
 volatile state_t state = IDLE;
@@ -92,6 +92,7 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
 		switch(state) {
 		case IDLE: {
 			if(bit == 0) {
+				data = 0;
 				state = DATA;
 				ind = 0;
 				parity = 1;
@@ -99,11 +100,11 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
 			break;
 		}
 		case DATA: {
-			data[ind] = bit;
+			data |= bit << ind;
 			if(bit)
 				parity = !parity;
 			++ind;
-			if(ind == 7)
+			if(ind == 8)
 				state = PARITY;
 			break;
 		}
@@ -123,20 +124,20 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
 			break;
 		}
 		case INVALID: {
-			printf("error");
+			sendByte(0xFE);
 			break;
 		}
 		case SEND_DATA: {
-			HAL_GPIO_WritePin(GPIOC, GPIO_PIN_15, data[ind]);
-			if(data[ind])
+			HAL_GPIO_WritePin(GPIOC, GPIO_PIN_15, ((data >> ind) & 1));
+			if(((data >> ind) & 1))
 				parity = !parity;
 			++ind;
-			if(ind == 7)
+			if(ind == 8)
 				state = SEND_PARITY;
 			break;
 		}
 		case SEND_PARITY: {
-			HAL_GPIO_WritePin(GPIOC, GPIO_PIN_15, parity);
+			HAL_GPIO_WritePin(GPIOC, GPIO_PIN_15, !parity);
 			state = SEND_STOP;
 			break;
 		}
@@ -158,16 +159,26 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
 
 void sendByte(uint8_t byte) {
 	state = SEND_START;
-	for(uint8_t i = 0; i < 8; i++) {
-		data[i] = (byte >> i) & 1;
-	}
+	ind = 0;
+	parity = 0;
+	data = byte;
+
 	HAL_GPIO_WritePin(GPIOC, GPIO_PIN_14, GPIO_PIN_RESET);
 	HAL_Delay(1);
 	HAL_GPIO_WritePin(GPIOC, GPIO_PIN_15, GPIO_PIN_RESET);
+
 	state = SEND_DATA;
-	ind = 0;
-	parity = 0;
 	HAL_GPIO_WritePin(GPIOC, GPIO_PIN_14, GPIO_PIN_SET);
+
+}
+
+void sendTwoBytes(uint8_t b1, uint8_t b2) {
+	sendByte(b1);
+	while(!is_data) {}
+	is_data = 0;
+	sendByte(b2);
+	while(!is_data) {}
+	is_data = 0;
 }
 /* USER CODE END PFP */
 
@@ -211,22 +222,15 @@ int main(void)
   HAL_GPIO_WritePin(GPIOC, GPIO_PIN_14, GPIO_PIN_SET);
   HAL_GPIO_WritePin(GPIOC, GPIO_PIN_15, GPIO_PIN_SET);
 
-  sendByte(0xFF);
-//  sendByte(0x7);
+  sendTwoBytes(0xED, 0x7);
   /* USER CODE END 2 */
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
 	  if(is_data) {
-		  for(uint8_t i = 0; i < 8; i++) {
-			  printf("%i", data[i]);
-		  }
-		  printf("\n\n");
+		  printf("%#x\n", data);
 		  is_data = 0;
-//		  if(data[0] == 1) {
-//			  sendByte(byte);
-//		  }
 	  }
     /* USER CODE END WHILE */
 
