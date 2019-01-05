@@ -146,6 +146,8 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
 			break;
 		}
 		case SEND_ACK: {
+			HAL_GPIO_WritePin(GPIOC, GPIO_PIN_14, GPIO_PIN_SET);
+			HAL_GPIO_WritePin(GPIOC, GPIO_PIN_15, GPIO_PIN_SET);
 			state = IDLE;
 			break;
 		}
@@ -154,10 +156,10 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
 	}
 }
 
-void sendByte(uint8_t *byte) {
+void sendByte(uint8_t byte) {
 	state = SEND_START;
-	for(uint8_t i = 0; i < 7; i++) {
-		data[i] = byte[i];
+	for(uint8_t i = 0; i < 8; i++) {
+		data[i] = (byte >> i) & 1;
 	}
 	HAL_GPIO_WritePin(GPIOC, GPIO_PIN_14, GPIO_PIN_RESET);
 	HAL_Delay(1);
@@ -208,8 +210,10 @@ int main(void)
 
   HAL_GPIO_WritePin(GPIOC, GPIO_PIN_14, GPIO_PIN_SET);
   HAL_GPIO_WritePin(GPIOC, GPIO_PIN_15, GPIO_PIN_SET);
-  /* USER CODE END 2 */
 
+  sendByte(0xFF);
+//  sendByte(0x7);
+  /* USER CODE END 2 */
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
@@ -220,6 +224,9 @@ int main(void)
 		  }
 		  printf("\n\n");
 		  is_data = 0;
+//		  if(data[0] == 1) {
+//			  sendByte(byte);
+//		  }
 	  }
     /* USER CODE END WHILE */
 
